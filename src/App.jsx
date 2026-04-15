@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp, collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
 
 // --- Firebase 配置 ---
 const firebaseConfig = {
@@ -49,7 +49,7 @@ export default function App() {
     lastUpdate: null
   });
 
-  // 1. 初始化驗證 (RULE 3)
+  // 1. 初始化驗證
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -63,7 +63,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. 監聽全域遊戲狀態與留言總數 (RULE 1)
+  // 2. 監聽全域遊戲狀態與留言總數
   useEffect(() => {
     if (!user) return;
     const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'states', 'global');
@@ -111,6 +111,25 @@ export default function App() {
     }
   };
 
+  // 留言功能切換與清除邏輯
+  const toggleMessageFeature = async () => {
+    const nextState = !gameState.isMessageOpen;
+    
+    // 如果是從「開啟」變為「關閉」，則清空所有留言內容使計數歸零
+    if (!nextState && user) {
+      try {
+        const msgCol = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+        const snap = await getDocs(msgCol);
+        const deletePromises = snap.docs.map(d => deleteDoc(d.ref));
+        await Promise.all(deletePromises);
+      } catch (err) {
+        console.error("Clear Messages Error:", err);
+      }
+    }
+
+    await forceUpdate({ ...gameState, isMessageOpen: nextState });
+  };
+
   // 能量開關邏輯
   const toggleEnergy = async (colorId) => {
     let newEnergies = [...(gameState.unlockedEnergies || [])];
@@ -130,16 +149,10 @@ export default function App() {
       setMessageInput('');
       const toast = document.createElement('div');
       toast.className = "fixed top-10 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-6 py-3 rounded-full z-50 animate-bounce shadow-lg font-bold";
-      toast.innerText = "❄️ 留言已傳送到冰川！";
+      toast.innerText = "❄️ 能量已傳送！";
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 2000);
     } catch (err) { console.error(err); }
-  };
-
-  const handleReset = async () => {
-    if (window.confirm("確定要【強制重置】所有內容嗎？")) {
-      await forceUpdate({ currentPhase: 'intro', unlockedEnergies: [], isMessageOpen: false });
-    }
   };
 
   // --- UI ---
@@ -187,13 +200,11 @@ export default function App() {
           </header>
           
           <div className="space-y-6">
-            <button onClick={handleReset} className="w-full bg-red-600 text-white py-6 rounded-[24px] font-black text-lg shadow-xl">🚨 重置所有進度</button>
-
             {/* 留言功能開關 */}
             <section className="bg-white rounded-[40px] p-6 shadow-sm border border-slate-200">
-              <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">互動開關</h3>
+              <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">留言互動控制</h3>
               <button 
-                onClick={() => forceUpdate({ ...gameState, isMessageOpen: !gameState.isMessageOpen })}
+                onClick={toggleMessageFeature}
                 className={`w-full p-6 rounded-[24px] font-black flex items-center justify-between border-4 transition-all ${
                   gameState.isMessageOpen ? 'bg-blue-500 text-white border-blue-600 shadow-lg' : 'bg-gray-100 text-gray-400 border-transparent'
                 }`}
@@ -201,6 +212,7 @@ export default function App() {
                 <span>新兵留言功能: {gameState.isMessageOpen ? '開啟中' : '關閉中'}</span>
                 <span className="text-2xl">{gameState.isMessageOpen ? '💬' : '🚫'}</span>
               </button>
+              <p className="text-[10px] text-center mt-3 text-slate-400 font-bold uppercase tracking-widest">目前收到留言：{msgCount} 則</p>
             </section>
 
             {/* 階段切換 */}
@@ -221,7 +233,7 @@ export default function App() {
 
             {/* 能量獲取控制 */}
             <section className="bg-white rounded-[40px] p-6 shadow-sm border border-slate-200">
-              <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">能量手動發放 (全體)</h3>
+              <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">能量發放控制</h3>
               <div className="grid grid-cols-2 gap-3">
                 {ENERGY_TYPES.map(e => {
                   const active = gameState.unlockedEnergies?.includes(e.id);
@@ -231,7 +243,7 @@ export default function App() {
                         active ? `${e.bg} text-white border-slate-900 shadow-lg` : 'bg-gray-50 border-transparent text-slate-200'
                       }`}>
                       <span className="text-3xl mb-1">{active ? '💎' : '⚪'}</span>
-                      <span className="text-[10px]">{e.label}</span>
+                      <span className="text-[10px] font-black">{e.label} {active ? '(ON)' : ''}</span>
                     </button>
                   );
                 })}
@@ -256,14 +268,18 @@ export default function App() {
         </div>
         <div className="flex flex-col items-end gap-2">
             <button onClick={() => setView('entry')} className="text-[10px] font-black opacity-30 px-4 py-2 border border-white/20 rounded-full">EXIT</button>
-            {msgCount > 0 && (
-                <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black border border-white/20">已採集心聲: {msgCount}</div>
+            {/* 留言數量顯示：僅在功能開啟時顯示 */}
+            {gameState.isMessageOpen && (
+                <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl text-[12px] font-black border border-white/30 shadow-lg animate-fade-in flex items-center gap-2">
+                  <span className="text-sm">💬</span>
+                  <span>{msgCount}</span>
+                </div>
             )}
         </div>
       </div>
 
       <div className={`flex-1 flex flex-col items-center justify-center text-center ${activePhase.textColor}`}>
-        <div className="w-40 h-40 mb-10 bg-white/10 backdrop-blur-3xl rounded-[48px] flex items-center justify-center border border-white/20 text-7xl shadow-2xl relative">
+        <div className="w-40 h-40 mb-10 bg-white/10 backdrop-blur-3xl rounded-[48px] flex items-center justify-center border border-white/20 text-7xl shadow-2xl relative transition-transform duration-500">
           {gameState.currentPhase === 'intro' && "📡"}
           {gameState.currentPhase === 'red' && "🌋"}
           {gameState.currentPhase === 'blue' && "🧊"}
@@ -286,7 +302,7 @@ export default function App() {
           <p className="text-lg font-bold leading-relaxed">
             {gameState.currentPhase === 'intro' && "新兵請就位。我們正在進入母體宇宙，準備採集四種關鍵能量。"}
             {gameState.currentPhase === 'red' && "情緒衝擊波來襲！全體開啟護盾，雙手交叉護胸！"}
-            {gameState.currentPhase === 'blue' && "拿出熱能手電筒（光劍）！照向舞台，用愛融化冰牆！"}
+            {gameState.currentPhase === 'blue' && "拿出熱能手電筒！照向舞台，用愛融化冰牆！"}
             {gameState.currentPhase === 'yellow' && "這是心靈富足的恆溫花室。感受這份平靜與神的愛。"}
             {gameState.currentPhase === 'purple' && "進入最後的暴塵沙漠。雖然看不清前方，但光一直都在。"}
           </p>
@@ -296,7 +312,7 @@ export default function App() {
           <div className="w-full max-w-xs space-y-4 animate-fade-in">
             <input type="text" value={messageInput} onChange={(e) => setMessageInput(e.target.value)} placeholder="寫下你的心聲..."
               className="w-full p-5 rounded-3xl bg-white/20 border-2 border-white/30 text-white placeholder:text-white/50 outline-none text-center font-bold" />
-            <button onClick={submitMessage} className="w-full bg-white text-blue-600 py-4 rounded-3xl font-black shadow-xl">發送能量留言</button>
+            <button onClick={submitMessage} className="w-full bg-white text-blue-600 py-4 rounded-3xl font-black shadow-xl active:scale-95 transition-all">發送能量留言</button>
           </div>
         )}
 
