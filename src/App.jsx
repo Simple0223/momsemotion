@@ -268,7 +268,6 @@ export default function App() {
         </div>
         <div className="flex flex-col items-end gap-2">
             <button onClick={() => setView('entry')} className="text-[10px] font-black opacity-30 px-4 py-2 border border-white/20 rounded-full">EXIT</button>
-            {/* 留言數量顯示：僅在功能開啟時顯示 */}
             {gameState.isMessageOpen && (
                 <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl text-[12px] font-black border border-white/30 shadow-lg animate-fade-in flex items-center gap-2">
                   <span className="text-sm">💬</span>
@@ -290,7 +289,7 @@ export default function App() {
           )}
         </div>
         
-        <h2 className="text-5xl font-black mb-5 tracking-tighter italic">
+        <h2 className="text-4xl font-black mb-5 tracking-tighter italic">
           {gameState.currentPhase === 'intro' && "任務啟動"}
           {gameState.currentPhase === 'red' && "焱炎火山"}
           {gameState.currentPhase === 'blue' && "遠古冰川"}
@@ -298,19 +297,19 @@ export default function App() {
           {gameState.currentPhase === 'purple' && "暴塵沙漠"}
         </h2>
 
-        <div className="bg-white/10 backdrop-blur-2xl p-8 rounded-[40px] max-w-[320px] border border-white/10 shadow-2xl mb-8">
-          <p className="text-lg font-bold leading-relaxed">
-            {gameState.currentPhase === 'intro' && "新兵請就位。我們正在進入母體宇宙，準備採集四種關鍵能量。"}
-            {gameState.currentPhase === 'red' && "情緒衝擊波來襲！全體開啟護盾，雙手交叉護胸！"}
-            {gameState.currentPhase === 'blue' && "拿出熱能手電筒！照向舞台，用愛融化冰牆！"}
-            {gameState.currentPhase === 'yellow' && "這是心靈富足的恆溫花室。感受這份平靜與神的愛。"}
-            {gameState.currentPhase === 'purple' && "進入最後的暴塵沙漠。雖然看不清前方，但光一直都在。"}
+        <div className="bg-white/10 backdrop-blur-2xl p-8 rounded-[40px] max-w-[340px] border border-white/10 shadow-2xl mb-8">
+          <p className="text-lg font-bold leading-relaxed tracking-wide">
+            {gameState.currentPhase === 'intro' && "初次任務！採集瑪姆斯伊莫星的四種關鍵能量。"}
+            {gameState.currentPhase === 'red' && "赤日炎炎似火燒，野田禾稻半枯焦。"}
+            {gameState.currentPhase === 'blue' && "冰天雪窖兩離隔，欲破冰牆用感恩。"}
+            {gameState.currentPhase === 'yellow' && "風輕日暖心煦暢，竟成邁進的阻擋？"}
+            {gameState.currentPhase === 'purple' && "漫天黃沙蔽前光，孰知雙目豈窺詳。"}
           </p>
         </div>
 
         {gameState.currentPhase === 'blue' && gameState.isMessageOpen && (
           <div className="w-full max-w-xs space-y-4 animate-fade-in">
-            <input type="text" value={messageInput} onChange={(e) => setMessageInput(e.target.value)} placeholder="寫下你的心聲..."
+            <input type="text" value={messageInput} onChange={(e) => setMessageInput(e.target.value)} placeholder="寫下你的感恩心聲..."
               className="w-full p-5 rounded-3xl bg-white/20 border-2 border-white/30 text-white placeholder:text-white/50 outline-none text-center font-bold" />
             <button onClick={submitMessage} className="w-full bg-white text-blue-600 py-4 rounded-3xl font-black shadow-xl active:scale-95 transition-all">發送能量留言</button>
           </div>
