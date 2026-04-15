@@ -179,11 +179,11 @@ export default function App() {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-white">
         <div className="text-center">
           <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[32px] flex items-center justify-center shadow-2xl text-5xl">🚀</div>
-          <h1 className="text-4xl font-black mb-2 italic">航太中心互動</h1>
-          <p className="text-slate-500 mb-12 font-bold tracking-[0.4em] text-[10px]">MISSION CONTROL INTERFACE</p>
+          <h1 className="text-4xl font-black mb-2 italic">高科技の能量卡</h1>
+          <p className="text-slate-500 mb-12 font-bold tracking-[0.4em] text-[10px]">HIGH-TECH ENERGY CARD</p>
           <div className="space-y-4 w-full max-w-xs mx-auto">
-            <button onClick={() => setView('soldier')} className="w-full bg-white text-slate-900 py-6 rounded-[24px] font-black text-xl shadow-2xl">登入任務 (新兵)</button>
-            <button onClick={() => setView('password')} className="w-full bg-slate-900/50 border border-slate-800 text-slate-500 py-4 rounded-[20px] text-xs font-black tracking-widest uppercase">進入控制台 (指揮官)</button>
+            <button onClick={() => setView('soldier')} className="w-full bg-white text-slate-900 py-6 rounded-[24px] font-black text-xl shadow-2xl">啟用能量卡</button>
+            <button onClick={() => setView('password')} className="w-full bg-slate-900/50 border border-slate-800 text-slate-500 py-4 rounded-[20px] text-xs font-black tracking-widest uppercase">指揮官專屬</button>
           </div>
         </div>
       </div>
@@ -300,10 +300,10 @@ export default function App() {
         <div className="bg-white/10 backdrop-blur-2xl p-8 rounded-[40px] max-w-[340px] border border-white/10 shadow-2xl mb-8">
           <p className="text-lg font-bold leading-relaxed tracking-wide">
             {gameState.currentPhase === 'intro' && "初次任務！採集瑪姆斯伊莫星的四種關鍵能量。"}
-            {gameState.currentPhase === 'red' && "赤日炎炎似火燒，野田禾稻半枯焦。"}
-            {gameState.currentPhase === 'blue' && "冰天雪窖兩離隔，欲破冰牆用感恩。"}
-            {gameState.currentPhase === 'yellow' && "風輕日暖心煦暢，竟成邁進的阻擋？"}
-            {gameState.currentPhase === 'purple' && "漫天黃沙蔽前光，孰知雙目豈窺詳。"}
+            {gameState.currentPhase === 'red' && <>赤日炎炎似火燒，<br/>野田禾稻半枯焦。</>}
+            {gameState.currentPhase === 'blue' && <>冰天雪窖兩離隔，<br/>欲破冰牆用感恩。</>}
+            {gameState.currentPhase === 'yellow' && <>風輕日暖心煦暢，<br/>竟成邁進的阻擋？</>}
+            {gameState.currentPhase === 'purple' && <>漫天黃沙蔽前光，<br/>孰知雙目豈窺詳。</>}
           </p>
         </div>
 
