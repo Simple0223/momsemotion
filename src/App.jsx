@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp, collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp, collection, addDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore';
 
 // --- Firebase 配置 ---
 const firebaseConfig = {
@@ -41,6 +41,7 @@ export default function App() {
   const [view, setView] = useState('entry'); 
   const [passwordInput, setPasswordInput] = useState('');
   const [messageInput, setMessageInput] = useState('');
+  const [messages, setMessages] = useState([]); 
   const [msgCount, setMsgCount] = useState(0);
   const [gameState, setGameState] = useState({
     currentPhase: 'intro',
@@ -63,7 +64,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. 監聽全域遊戲狀態與留言總數
+  // 2. 監聽全域遊戲狀態與留言
   useEffect(() => {
     if (!user) return;
     const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'states', 'global');
@@ -90,6 +91,8 @@ export default function App() {
 
     const unsubMsgs = onSnapshot(msgCol, (snap) => {
       setMsgCount(snap.size);
+      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setMessages(msgs.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)));
     }, (err) => console.error("Msg Listen Error:", err));
 
     return () => { unsubGame(); unsubMsgs(); };
@@ -114,8 +117,6 @@ export default function App() {
   // 留言功能切換與清除邏輯
   const toggleMessageFeature = async () => {
     const nextState = !gameState.isMessageOpen;
-    
-    // 如果是從「開啟」變為「關閉」，則清空所有留言內容使計數歸零
     if (!nextState && user) {
       try {
         const msgCol = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
@@ -126,7 +127,6 @@ export default function App() {
         console.error("Clear Messages Error:", err);
       }
     }
-
     await forceUpdate({ ...gameState, isMessageOpen: nextState });
   };
 
@@ -155,7 +155,59 @@ export default function App() {
     } catch (err) { console.error(err); }
   };
 
-  // --- UI ---
+  // --- 視圖控制 ---
+
+  // 1. 大螢幕模式 (由指揮官開啟)
+  if (view === 'display') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white p-12 flex flex-col overflow-hidden">
+        <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
+          <div>
+            <h1 className="text-6xl font-black italic tracking-tighter text-cyan-400 mb-2">ENERGY MONITOR</h1>
+            <p className="text-slate-500 font-bold tracking-[0.5em] text-sm uppercase">夏凱納航太中心 · 即時能量監控系統</p>
+          </div>
+          <div className="text-right">
+            <div className="text-slate-500 text-xs font-black mb-1 uppercase tracking-widest">Captured Energy Units</div>
+            <div className="text-7xl font-black text-white tabular-nums">{msgCount}</div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden relative">
+           <div className="flex flex-wrap justify-center gap-6 content-start transition-all duration-1000">
+            {messages.length === 0 ? (
+              <div className="mt-40 text-slate-800 text-5xl font-black italic animate-pulse tracking-widest text-center w-full">
+                WAITING FOR INCOMING SIGNALS...
+              </div>
+            ) : (
+              messages.map((m, idx) => (
+                <div key={m.id} 
+                  className={`p-8 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-2xl shadow-2xl transition-all duration-500 animate-fade-in-up
+                    ${idx === 0 ? 'scale-110 border-cyan-400/50 bg-white/10 ring-4 ring-cyan-400/10' : 'scale-100'}
+                  `}
+                >
+                  <p className="text-3xl font-bold tracking-tight">{m.text}</p>
+                  <div className="mt-3 flex items-center gap-2 opacity-30">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Signal Source: {m.userId?.slice(-4).toUpperCase()}</span>
+                  </div>
+                </div>
+              ))
+            )}
+           </div>
+        </div>
+
+        <div className="mt-8 flex justify-between items-center opacity-20 text-[10px] font-black tracking-[1em] uppercase">
+          <span>SYSTEM RUNNING OK</span>
+          <span>SYSCAL PHASE: {gameState.currentPhase}</span>
+          <span>{new Date().toLocaleTimeString()}</span>
+        </div>
+        
+        <button onClick={() => setView('commander')} className="fixed bottom-4 right-4 bg-white/10 p-2 px-4 rounded-full text-[10px] font-bold hover:bg-white/20 transition-all border border-white/20">BACK TO CONTROL</button>
+      </div>
+    );
+  }
+
+  // 2. 密碼驗證頁
   if (view === 'password') {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
@@ -174,6 +226,7 @@ export default function App() {
     );
   }
 
+  // 3. 入口頁
   if (view === 'entry') {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-white">
@@ -190,6 +243,7 @@ export default function App() {
     );
   }
 
+  // 4. 指揮官控制台 (整合大螢幕入口)
   if (view === 'commander') {
     return (
       <div className="min-h-screen bg-gray-100 p-4 text-slate-800">
@@ -200,7 +254,19 @@ export default function App() {
           </header>
           
           <div className="space-y-6">
-            {/* 留言功能開關 */}
+            {/* 大螢幕牆入口 - 整合在這裡 */}
+            <section className="bg-slate-900 rounded-[40px] p-6 shadow-xl border border-slate-800 text-white">
+              <h3 className="text-[10px] font-black text-slate-500 mb-4 uppercase tracking-widest">投影監控輸出</h3>
+              <button 
+                onClick={() => setView('display')}
+                className="w-full p-6 rounded-[24px] bg-cyan-600 hover:bg-cyan-500 font-black flex items-center justify-center gap-3 transition-all shadow-lg active:scale-95"
+              >
+                <span className="text-2xl">📺</span>
+                <span className="text-lg">開啟大螢幕能量牆</span>
+              </button>
+              <p className="text-[10px] text-center mt-3 text-slate-500 font-bold uppercase tracking-widest italic">點擊後請將視窗投影至主螢幕</p>
+            </section>
+
             <section className="bg-white rounded-[40px] p-6 shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">留言互動控制</h3>
               <button 
@@ -215,7 +281,6 @@ export default function App() {
               <p className="text-[10px] text-center mt-3 text-slate-400 font-bold uppercase tracking-widest">目前收到留言：{msgCount} 則</p>
             </section>
 
-            {/* 階段切換 */}
             <section className="bg-white rounded-[40px] p-6 shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">當前任務階段</h3>
               <div className="grid gap-2">
@@ -231,7 +296,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 能量獲取控制 */}
             <section className="bg-white rounded-[40px] p-6 shadow-sm border border-slate-200">
               <h3 className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-widest">能量發放控制</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -255,7 +319,7 @@ export default function App() {
     );
   }
 
-  // --- 新兵端 ---
+  // 5. 新兵端 (不變)
   const activePhase = PHASES.find(p => p.id === gameState.currentPhase) || PHASES[0];
   const isCurrentEnergyUnlocked = gameState.unlockedEnergies?.includes(gameState.currentPhase);
 
