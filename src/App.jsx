@@ -27,6 +27,7 @@ const PHASES = [
   { id: 'blue', name: 'Phase 3: 遠古冰川 (藍)', color: 'bg-blue-500', textColor: 'text-white' },
   { id: 'yellow', name: 'Phase 4: 恆溫花室 (黃)', color: 'bg-yellow-400', textColor: 'text-slate-900' },
   { id: 'purple', name: 'Phase 5: 暴塵沙漠 (紫)', color: 'bg-purple-600', textColor: 'text-white' },
+  { id: 'cabin', name: 'Phase 6: 太空艙 (結尾)', color: 'bg-slate-950', textColor: 'text-cyan-400' },
 ];
 
 const ENERGY_TYPES = [
@@ -348,6 +349,7 @@ export default function App() {
           {gameState.currentPhase === 'blue' && "🧊"}
           {gameState.currentPhase === 'yellow' && "🌸"}
           {gameState.currentPhase === 'purple' && "🌪️"}
+          {gameState.currentPhase === 'cabin' && "🛸"}
           {isCurrentEnergyUnlocked && (
             <div className="absolute -top-4 -right-4 bg-white text-3xl p-2 rounded-full shadow-2xl animate-bounce">✨</div>
           )}
@@ -359,6 +361,7 @@ export default function App() {
           {gameState.currentPhase === 'blue' && "遠古冰川"}
           {gameState.currentPhase === 'yellow' && "恆溫花室"}
           {gameState.currentPhase === 'purple' && "暴塵沙漠"}
+          {gameState.currentPhase === 'cabin' && "回到太空艙"}
         </h2>
 
         <div className="bg-white/10 backdrop-blur-2xl p-8 rounded-[40px] max-w-[340px] border border-white/10 shadow-2xl mb-8">
@@ -368,6 +371,7 @@ export default function App() {
             {gameState.currentPhase === 'blue' && <>冰天雪窖兩離隔，<br/>欲破冰牆用感恩。</>}
             {gameState.currentPhase === 'yellow' && <>風輕日暖心煦暢，<br/>竟成邁進的阻擋？</>}
             {gameState.currentPhase === 'purple' && <>漫天黃沙蔽前光，<br/>孰知雙目豈窺詳。</>}
+            {gameState.currentPhase === 'cabin' && "任務圓滿達成！準備返航，向所有支持你的地球人發送平安訊號吧！"}
           </p>
         </div>
 
